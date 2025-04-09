@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--xml文件名称与Mapper接口一致，并放置在相同包下]-->
+
+<!--namespace参数设置为对应mapper的路径-->
+<mapper namespace="org.example.springbootproject01.mapper.UserMapper">
+<!--按传统方式更新时，若只想更新一部分，则未传递的参数会被替换为null，因此采用下面的方法更新
+    <set>的作用与<where>一样，会去除多余的','-->
+    <update id="update">
+        update user
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="age != null">age = #{age},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="phone != null">phone = #{phone}</if>
+        </set>
+        where id = #{id}
+    </update>
+<!--collection:遍历的集合
+    item:遍历出来的元素
+    separator:分隔符
+    open:开始符号， close:结束符号。分别拼接在遍历开始前后的SQL片段
+    -->
+    <delete id="deleteByIds">
+        delete from user where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!--id参数需要与方法名一致，如果是查询操作，则resultType参数与返回实体路径一致
+     总体而言，这段xml配置实现了@Select注解的功能，如果有这段xml配置，则UserMapper中只需要定义
+     public List<User_db> listSelect(String name, Short begin, Short end)这个方法即可，
+     具体的实现代码都交给了xml配置-->
+    <select id="listSelect" resultType="org.example.springbootproject01.Pojo.User_db">
+        select * from user where name like concat('%',#{name},'%') and
+            age between #{begin} and #{end}
+    </select>
+
+<!--插入-->
+    <insert id="insert">
+        insert into user(name,age,gender,phone) values(#{name},#{age},#{gender},#{phone})
+    </insert>
+
+
+<!--    上面的写法固定了参数的数量，因此，如果参数数量不固定，可以采用如下写法：
+        其中，<if>用于条件判断，使用参数test进行判断，判断为true时执行包裹的语句
+        <where>起到两个作用，第一，如果if里的条件都不满足，则直接不生成where关键字
+        第二，假设第一个条件不满足，第二个条件满足，<where>会自动删除多余的and以免语法错误（只删，不自动加）-->
+    <select id="listSelect2" resultType="org.example.springbootproject01.Pojo.User_db">
+        select * from user
+        <where>
+            <if test="name !=null">
+                name like concat('%',#{name},'%')
+            </if>
+            <if test="begin !=null and end != null">
+                and age between #{begin} and #{end}
+            </if>
+        </where>
+    </select>
+
+<!--sql标签可以抽取sql语句，在需要使用的地方用include标签调用即可，include标签的refid参数值需与sql标签中id的参数一致-->
+    <sql id="commonSelectPart">
+        select id, name, age, gender,phone from user
+    </sql>
+    <select id="commonSelect" resultType="org.example.springbootproject01.Pojo.User_db">
+        <include refid="commonSelectPart"></include>
+    </select>
+
+</mapper>
